@@ -1,14 +1,17 @@
 {
-  "name": "install-contracts",
+  "name": "@xcmkit/contracts",
   "version": "1.0.0",
-  "description": "",
+  "description": "XCMKit - Solidity library for cross-chain transfers on Polkadot Hub",
   "main": "index.js",
   "scripts": {
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "compile": "npx hardhat compile",
+    "deploy:local": "npx hardhat ignition deploy ./ignition/modules/XCMBridge.ts --network localhost",
+    "deploy:testnet": "npx hardhat ignition deploy ./ignition/modules/XCMBridge.ts --network passetHubTestnet"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["xcm", "polkadot", "cross-chain", "solidity", "smart-contracts"],
+  "author": "Carlos Israel Jiménez",
+  "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
     "@nomicfoundation/hardhat-viem": "^2.0.6",
