@@ -1,6 +1,6 @@
 import { HardhatUserConfig, vars } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import "@parity/hardhat-polkadot";
+// import "@parity/hardhat-polkadot";  // Temporarily disabled due to WebSocket issue
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -14,26 +14,21 @@ if (!privateKey) {
 
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
-  resolc: {
-    compilerSource: "npm",
-    settings: {},
-  },
+  // resolc: {
+  //   version: "0.3.0",
+  //   compilerSource: "npm",
+  //   settings: {},
+  // },
   networks: {
     hardhat: {
       // polkavm: true,
-      // forking: {
-      //   url: "https://testnet-passet-hub-eth-rpc.polkadot.io"
-      // },
-      // adapterConfig: {
-      //   adapterBinaryPath: "./bin/eth-rpc",
-      //   dev: true,
-      // },
     },
-    localhost: {
-      url: "http://127.0.0.1:8545/",
+    localNode: {
+      // polkavm: true,
+      url: "http://127.0.0.1:8545",
     },
-    passetHubTestnet: {
-      polkavm: true,
+    passetHub: {
+      // polkavm: true,
       url: "https://testnet-passet-hub-eth-rpc.polkadot.io",
       accounts: privateKey ? [privateKey] : [],
     },

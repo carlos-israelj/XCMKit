@@ -178,18 +178,15 @@ library XCMKit {
      * @notice Send an arbitrary XCM message to a destination
      * @param destinationParaId Destination parachain ID
      * @param message Encoded XCM message
-     * @return messageId The ID of the sent message
      */
     function send(uint32 destinationParaId, bytes memory message)
         internal
-        returns (bytes32 messageId)
     {
         bytes memory destination = MultiLocation.parachain(destinationParaId);
         IXcm xcm = IXcm(XCM_PRECOMPILE);
-        messageId = xcm.send(destination, message);
+        xcm.send(destination, message);
 
-        emit XCMMessageSent(messageId, keccak256(destination));
-        return messageId;
+        emit XCMMessageSent(bytes32(0), keccak256(destination));
     }
 
     /**
@@ -213,9 +210,9 @@ library XCMKit {
 
         // Execute
         IXcm xcm = IXcm(XCM_PRECOMPILE);
-        bytes memory outcome = xcm.execute(xcmProgram, weight);
+        xcm.execute(xcmProgram, weight);
 
-        // Check outcome (simplified - actual outcome parsing TBD)
-        return outcome.length > 0;
+        // Execution succeeded if no revert
+        return true;
     }
 }
