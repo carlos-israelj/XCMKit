@@ -1,5 +1,6 @@
 import { HardhatUserConfig, vars } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-viem";
 // import "@parity/hardhat-polkadot";  // Temporarily disabled due to WebSocket issue
 import dotenv from "dotenv";
 

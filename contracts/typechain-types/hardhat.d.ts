@@ -74,9 +74,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MyToken__factory>;
     getContractFactory(
+      name: "MultiLocationTest",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MultiLocationTest__factory>;
+    getContractFactory(
       name: "ScaleEncoderTest",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ScaleEncoderTest__factory>;
+    getContractFactory(
+      name: "XCMProgramTest",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.XCMProgramTest__factory>;
     getContractFactory(
       name: "XCMBridge",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -158,10 +166,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.MyToken>;
     getContractAt(
+      name: "MultiLocationTest",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MultiLocationTest>;
+    getContractAt(
       name: "ScaleEncoderTest",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.ScaleEncoderTest>;
+    getContractAt(
+      name: "XCMProgramTest",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.XCMProgramTest>;
     getContractAt(
       name: "XCMBridge",
       address: string | ethers.Addressable,
@@ -229,9 +247,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MyToken>;
     deployContract(
+      name: "MultiLocationTest",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.MultiLocationTest>;
+    deployContract(
       name: "ScaleEncoderTest",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ScaleEncoderTest>;
+    deployContract(
+      name: "XCMProgramTest",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.XCMProgramTest>;
     deployContract(
       name: "XCMBridge",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -313,10 +339,20 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MyToken>;
     deployContract(
+      name: "MultiLocationTest",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.MultiLocationTest>;
+    deployContract(
       name: "ScaleEncoderTest",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ScaleEncoderTest>;
+    deployContract(
+      name: "XCMProgramTest",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.XCMProgramTest>;
     deployContract(
       name: "XCMBridge",
       args: any[],

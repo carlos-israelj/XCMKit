@@ -764,6 +764,82 @@
       "artifacts": [
         "ScaleEncoderTest"
       ]
+    },
+    "/mnt/c/Users/CarlosIsraelJiménezJ/Documents/Polkadot/XCMKit/contracts/contracts/test-helpers/XCMProgramTest.sol": {
+      "lastModificationDate": 1772051564035,
+      "contentHash": "d545d70a7cf3f2ce342c04feeb9d7ffd",
+      "sourceName": "contracts/test-helpers/XCMProgramTest.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libs/XCMProgram.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.28"
+      ],
+      "artifacts": [
+        "XCMProgramTest"
+      ]
+    },
+    "/mnt/c/Users/CarlosIsraelJiménezJ/Documents/Polkadot/XCMKit/contracts/contracts/test-helpers/MultiLocationTest.sol": {
+      "lastModificationDate": 1772050132903,
+      "contentHash": "9e2681bd6813cdbe155391028e86b253",
+      "sourceName": "contracts/test-helpers/MultiLocationTest.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../libs/MultiLocation.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.28"
+      ],
+      "artifacts": [
+        "MultiLocationTest"
+      ]
     }
   }
 }
