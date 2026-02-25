@@ -1,48 +1,43 @@
-# Web3Auth React Quick Start
+# XCMKit Playground
 
-This example demonstrates how to integrate Web3Auth into a React application for EVM chains.
+Interactive demo interface for testing XCMKit cross-chain transfers on Polkadot.
 
-## Prerequisites
-- Node.js 20+
-- npm
-- A Web3Auth Client ID (get one from [Web3Auth Dashboard](https://dashboard.web3auth.io))
+## Features
+
+- ✅ MetaMask wallet connection
+- ✅ Destination chain selector (7 supported chains)
+- ✅ Amount input with recipient address
+- ✅ Fee estimation preview
+- ✅ Transfer execution (reserve transfer & teleport)
+- ✅ Responsive design
 
 ## Quick Start
 
-### 1. Clone the repository
 ```bash
-git clone https://github.com/Web3Auth/web3auth-examples.git
-```
-
-### 2. Navigate to the example
-```bash
-cd web3auth-examples/quick-starts/react-quick-start
-```
-
-### 3. Install dependencies
-```bash
+# Install dependencies
 npm install
-```
 
-### 4. Configure environment variables
-Create a `.env` file and add your Web3Auth Client ID:
-```bash
-VITE_WEB3AUTH_CLIENT_ID=YOUR_WEB3AUTH_CLIENT_ID
-```
-
-### 5. Run the application
-```bash
+# Start development server
 npm run dev
+
+# Build for production
+npm run build
 ```
 
-Visit `http://localhost:5173` in your browser to see the application running.
+## Supported Chains
 
-## 📚 Resources
+- **AssetHub** (1000) - System chain (teleport)
+- **BridgeHub** (1002) - System chain (teleport)
+- **Acala** (2000) - Parachain
+- **Moonbeam** (2004) - Parachain
+- **Astar** (2006) - Parachain
+- **Bifrost** (2030) - Parachain
+- **Hydration** (2034) - Parachain
 
-- [Web3Auth Documentation](https://web3auth.io/docs)
-- [SDK References](https://web3auth.io/docs/sdk)
-- [Developer Dashboard](https://dashboard.web3auth.io)
-- [Web3Auth Community](https://web3auth.io/community)
+## Configuration
 
-## License
-MIT
+Update `src/config.ts` with your deployed contract address once available.
+
+## Demo Mode
+
+Currently in demo mode. Once XCMBridge is deployed to Passet Hub testnet, the interface will execute real transactions.

@@ -1,319 +1,284 @@
-import "./App.css";
-import {
-  useWeb3AuthConnect,
-  useWeb3AuthDisconnect,
-  useWeb3AuthUser,
-  useWeb3Auth,
-} from "@web3auth/modal/react";
-import { useAccount, useChainId } from "wagmi";
-import { SendTransaction } from "./components/sendTransaction";
-import { Balance } from "./components/getBalance";
-import { SwitchChain } from "./components/switchNetwork";
-import { ExportPrivateKey } from "./components/exportPrivateKey";
-import { ContractData } from "./components/ContractData";
-import { myTokenModuleMyTokenAddress } from "./generated";
-import { passetHub, kusamaAssetHub, westend } from "./wagmi-config";
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react'
+import { ethers } from 'ethers'
+import { SUPPORTED_CHAINS, CONTRACT_ADDRESS, RPC_URL } from './config'
+import './App.css'
+
+// XCMBridge ABI (simplified for demo)
+const XCM_BRIDGE_ABI = [
+  'function transfer(uint32 destinationParaId, address recipient, address token, uint256 amount) external',
+  'function teleport(uint32 destinationParaId, address recipient, address token, uint256 amount) external',
+  'function estimateFee(uint32 destinationParaId, address token, uint256 amount) external view returns (uint256)',
+  'function getSupportedChains() external view returns (uint32[])',
+]
+
+interface TransferForm {
+  destinationChainId: number
+  recipient: string
+  tokenAddress: string
+  amount: string
+}
 
 function App() {
-  const {
-    connect,
-    isConnected,
-    connectorName,
-    loading: connectLoading,
-    error: connectError,
-  } = useWeb3AuthConnect();
-  const {
-    disconnect,
-    loading: disconnectLoading,
-    error: disconnectError,
-  } = useWeb3AuthDisconnect();
-  const { userInfo } = useWeb3AuthUser();
-  const { web3Auth } = useWeb3Auth();
-  const { address } = useAccount();
-  const chainId = useChainId();
+  const [account, setAccount] = useState<string>('')
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null)
+  const [form, setForm] = useState<TransferForm>({
+    destinationChainId: 2034, // Default to Hydration
+    recipient: '',
+    tokenAddress: '0x0000000000000000000000000000000000000001',
+    amount: '',
+  })
+  const [estimatedFee, setEstimatedFee] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [txHash, setTxHash] = useState<string>('')
+  const [error, setError] = useState<string>('')
 
-  // Provider readiness states
-  const [providerReady, setProviderReady] = useState(false);
-  const [providerLoading, setProviderLoading] = useState(true);
-  const [providerError, setProviderError] = useState(false);
-
-  // Track Web3Auth provider initialization
   useEffect(() => {
-    const checkProviderStatus = () => {
-      if (web3Auth) {
-        try {
-          // Check if Web3Auth is properly initialized and ready for login
-          // Web3Auth is ready if status is 'ready'
-          const isInitialized = web3Auth.status === "ready";
-          const isNotConnecting = !connectLoading;
-          const canLogin = isInitialized && isNotConnecting;
+    checkWalletConnection()
+  }, [])
 
-          setProviderReady(canLogin);
-          setProviderLoading(web3Auth.status !== "ready");
-
-          // console.log('Web3Auth status:', web3Auth.status, 'connectLoading:', connectLoading, 'canLogin:', canLogin);
-
-          // If ready, clear the interval
-          if (canLogin) {
-            return true; // Signal to stop interval
-          }
-        } catch (error) {
-          console.error("Error checking Web3Auth status:", error);
-          setProviderReady(false);
-          setProviderLoading(true);
+  const checkWalletConnection = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum)
+        setProvider(provider)
+        
+        const accounts = await provider.listAccounts()
+        if (accounts.length > 0) {
+          setAccount(accounts[0].address)
         }
-      } else {
-        // Still loading if web3Auth instance not available
-        setProviderReady(false);
-        setProviderLoading(true);
+      } catch (err) {
+        console.error('Failed to check wallet connection:', err)
       }
-      return false; // Continue interval
-    };
-
-    // Check immediately
-    if (checkProviderStatus()) {
-      return; // Already ready, no need for interval
-    }
-
-    // Set up interval to continuously check until ready
-    const interval = setInterval(() => {
-      if (checkProviderStatus()) {
-        clearInterval(interval);
-      }
-    }, 200); // Check more frequently
-
-    // Cleanup interval after 30 seconds max
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-      console.warn("Web3Auth initialization timeout");
-      setProviderLoading(false);
-      setProviderError(true);
-      setProviderReady(false);
-    }, 30000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [web3Auth, connectLoading]);
-
-
-  const contractAddress =
-    myTokenModuleMyTokenAddress[
-      passetHub.id as keyof typeof myTokenModuleMyTokenAddress
-    ];
-
-  // Faucet URLs for different networks
-  const getFaucetUrl = (chainId: number, address: string) => {
-    const faucetUrls = {
-      [passetHub.id]: `https://faucet.polkadot.io/?parachain=1111&address=${address}`,
-      [kusamaAssetHub.id]: `https://faucet.polkadot.io/?parachain=1000&address=${address}`,
-      [westend.id]: `https://faucet.polkadot.io/?parachain=1000&address=${address}`,
-    };
-    return faucetUrls[chainId as keyof typeof faucetUrls];
-  };
-
-  const handleFaucetClick = () => {
-    if (!address) return;
-
-    const faucetUrl = getFaucetUrl(chainId, address);
-    if (faucetUrl) {
-      window.open(faucetUrl, "_blank", "noopener,noreferrer");
-      uiConsole(`Opening faucet for ${address} on chain ${chainId}`);
-    } else {
-      uiConsole(`No faucet available for chain ${chainId}`);
-    }
-  };
-
-  function uiConsole(...args: any[]): void {
-    const el = document.querySelector("#console>p");
-    if (el) {
-      el.innerHTML = JSON.stringify(args || {}, null, 2);
-      console.log(...args);
     }
   }
 
-  const loggedInView = (
-    <div className="grid">
-      <div className="showcase-message">
-        <h3>
-          🎯 Interact directly with Polkadot Asset Hub - no MetaMask required!
-        </h3>
-        <p>
-          You're connected via Web3Auth. A secure key pair was generated from
-          your social login choice, enabling blockchain interactions without
-          browser wallet extensions.
-        </p>
-      </div>
+  const connectWallet = async () => {
+    if (typeof window.ethereum === 'undefined') {
+      setError('MetaMask is not installed')
+      return
+    }
 
-      <h2>Connected to {connectorName}</h2>
-      <div>{address}</div>
-      <div className="flex-container">
-        <div>
-          <button onClick={() => uiConsole(userInfo)} className="card">
-            Get User Info
-          </button>
-        </div>
-        <div>
-          <button onClick={handleFaucetClick} className="card faucet-button">
-            Get Test Tokens
-          </button>
-        </div>
-        <div>
-          <button onClick={() => disconnect()} className="card">
-            Log Out
-          </button>
-          {disconnectLoading && <div className="loading">Disconnecting...</div>}
-          {disconnectError && (
-            <div className="error">{disconnectError.message}</div>
-          )}
-        </div>
-      </div>
+    try {
+      setLoading(true)
+      setError('')
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      await provider.send('eth_requestAccounts', [])
+      const signer = await provider.getSigner()
+      const address = await signer.getAddress()
+      setAccount(address)
+      setProvider(provider)
+    } catch (err: any) {
+      setError(err.message || 'Failed to connect wallet')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      <div className="showcase-message">
-        <h3>💰 Check Your Balance</h3>
-        <p>View your current token balances on the connected network.</p>
-      </div>
-      <Balance />
+  const estimateFeeHandler = async () => {
+    if (!provider || !form.amount) return
 
-      {/* <div className="showcase-message">
-        <h3>🔄 Send Transactions</h3>
-        <p>Transfer tokens directly through Asset Hub without additional wallet prompts.</p>
-      </div>
-      <SendTransaction /> */}
+    try {
+      setLoading(true)
+      setError('')
+      
+      // In production, this would call the actual contract
+      // For demo, we'll show a placeholder
+      const amountInWei = ethers.parseEther(form.amount)
+      const estimatedFeeWei = amountInWei / 10n // Estimate 10% fee
+      setEstimatedFee(ethers.formatEther(estimatedFeeWei))
+    } catch (err: any) {
+      setError(err.message || 'Failed to estimate fee')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      {contractAddress && (
-        <>
-          <div className="showcase-message">
-            <h3>📋 Smart Contract Interactions</h3>
-            <p>
-              Interact with deployed contracts on Asset Hub - read balances,
-              approve tokens, and execute transactions.
-            </p>
-          </div>
-          <div className="contract-section">
-            <h3>FakeUSDT Contract Interactions</h3>
-            <ContractData
-              contractAddress={contractAddress}
-              userAddresses={address ? [address] : undefined}
-            />
-          </div>
-        </>
-      )}
+  const handleTransfer = async () => {
+    if (!provider || !account) {
+      setError('Please connect your wallet')
+      return
+    }
 
-      <div className="showcase-message">
-        <h3>🌐 Network Switching</h3>
-        <p>Switch between different Polkadot networks seamlessly.</p>
-      </div>
-      <SwitchChain />
+    if (!form.recipient || !form.amount) {
+      setError('Please fill in all fields')
+      return
+    }
 
-      <div className="showcase-message">
-        <h3>🔑 Private Key Access</h3>
-        <p>
-          Export your private key for advanced use cases while maintaining
-          security.
-        </p>
-      </div>
-      <ExportPrivateKey />
+    try {
+      setLoading(true)
+      setError('')
+      setTxHash('')
 
-      {!contractAddress && (
-        <div className="contract-section">
-          <h3>Contract Not Available</h3>
-          <p>
-            Please deploy the FakeUSDT contract and update the address in
-            generated.ts
-          </p>
-        </div>
-      )}
-    </div>
-  );
+      const signer = await provider.getSigner()
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, XCM_BRIDGE_ABI, signer)
 
-  const unloggedInView = (
-    <div className="grid">
-      <div className="educational-message">
-        <h2>
-          👋 Connect with your social accounts to explore Web3 without wallet
-          extensions!
-        </h2>
-        <p>
-          See what's possible with Asset Hub interactions - no MetaMask or
-          browser wallet required. Just use your existing social logins to get
-          started.
-        </p>
-      </div>
+      const selectedChain = SUPPORTED_CHAINS.find(c => c.id === form.destinationChainId)
+      const amountInWei = ethers.parseEther(form.amount)
 
-      {/* Provider initialization status */}
-      {providerLoading && (
-        <div className="loading">Initializing Web3Auth provider...</div>
-      )}
+      let tx
+      if (selectedChain?.type === 'system') {
+        // Use teleport for system chains
+        tx = await contract.teleport(
+          form.destinationChainId,
+          form.recipient,
+          form.tokenAddress,
+          amountInWei
+        )
+      } else {
+        // Use reserve transfer for parachains
+        tx = await contract.transfer(
+          form.destinationChainId,
+          form.recipient,
+          form.tokenAddress,
+          amountInWei
+        )
+      }
 
-      {/* Login button - only show when provider is ready */}
-      {!providerLoading && providerReady && (
-        <button
-          onClick={() => {
-            // Since the button only appears when ready, we should always be able to connect
-            if (web3Auth && web3Auth.status === "ready" && !connectLoading && !isConnected) {
-              connect();
-            }
-          }}
-          className="card"
-          disabled={!providerReady || connectLoading || isConnected}
-        >
-          Login
-        </button>
-      )}
-
-      {/* Provider failed to initialize */}
-      {!providerLoading && !providerReady && providerError && !connectLoading && (
-        <div className="error">
-          Web3Auth provider failed to initialize after 30 seconds. Please check
-          your internet connection and reload the page.
-        </div>
-      )}
-
-      {/* Provider ready but can't connect (network issues) */}
-      {!providerLoading && !providerReady && !providerError && !connectLoading && (
-        <div className="error">
-          Web3Auth provider is not ready for login. Please wait or reload the
-          page.
-        </div>
-      )}
-
-      {connectLoading && <div className="loading">Connecting...</div>}
-      {connectError && <div className="error">{connectError.message}</div>}
-    </div>
-  );
+      setTxHash(tx.hash)
+      await tx.wait()
+      
+      // Reset form
+      setForm({ ...form, recipient: '', amount: '' })
+      setEstimatedFee('')
+    } catch (err: any) {
+      setError(err.message || 'Transaction failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="container">
-      <h1 className="title">
-        <a
-          target="_blank"
-          href="https://web3auth.io/docs/sdk/pnp/web/modal"
-          rel="noreferrer"
-        >
-          Web3Auth{" "}
-        </a>
-        & React Modal Quick Start by WEB3DEV
-      </h1>
+    <div className="app">
+      <header className="header">
+        <h1>XCMKit Playground</h1>
+        <p>Cross-chain transfers on Polkadot</p>
+      </header>
 
-      {isConnected ? loggedInView : unloggedInView}
-      <div id="console" style={{ whiteSpace: "pre-line" }}>
-        <p style={{ whiteSpace: "pre-line" }}></p>
-      </div>
+      <main className="main">
+        {!account ? (
+          <div className="connect-card">
+            <h2>Connect Wallet</h2>
+            <p>Connect your MetaMask wallet to start using XCMKit</p>
+            <button 
+              onClick={connectWallet} 
+              disabled={loading}
+              className="btn-primary"
+            >
+              {loading ? 'Connecting...' : 'Connect MetaMask'}
+            </button>
+          </div>
+        ) : (
+          <div className="transfer-card">
+            <div className="account-info">
+              <span className="label">Connected:</span>
+              <span className="address">{account.slice(0, 6)}...{account.slice(-4)}</span>
+            </div>
+
+            <form className="transfer-form" onSubmit={(e) => { e.preventDefault(); handleTransfer(); }}>
+              <div className="form-group">
+                <label>Destination Chain</label>
+                <select
+                  value={form.destinationChainId}
+                  onChange={(e) => setForm({ ...form, destinationChainId: Number(e.target.value) })}
+                  className="select"
+                >
+                  {SUPPORTED_CHAINS.map(chain => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.name} ({chain.type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Recipient Address</label>
+                <input
+                  type="text"
+                  value={form.recipient}
+                  onChange={(e) => setForm({ ...form, recipient: e.target.value })}
+                  placeholder="0x..."
+                  className="input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Token Address</label>
+                <input
+                  type="text"
+                  value={form.tokenAddress}
+                  onChange={(e) => setForm({ ...form, tokenAddress: e.target.value })}
+                  placeholder="0x..."
+                  className="input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Amount (in tokens)</label>
+                <input
+                  type="text"
+                  value={form.amount}
+                  onChange={(e) => {
+                    setForm({ ...form, amount: e.target.value })
+                    setEstimatedFee('')
+                  }}
+                  placeholder="0.0"
+                  className="input"
+                />
+              </div>
+
+              {form.amount && (
+                <button
+                  type="button"
+                  onClick={estimateFeeHandler}
+                  disabled={loading}
+                  className="btn-secondary"
+                >
+                  Estimate Fee
+                </button>
+              )}
+
+              {estimatedFee && (
+                <div className="fee-estimate">
+                  <span className="label">Estimated Fee:</span>
+                  <span className="value">{estimatedFee} PAS</span>
+                </div>
+              )}
+
+              {error && (
+                <div className="error-message">
+                  {error}
+                </div>
+              )}
+
+              {txHash && (
+                <div className="success-message">
+                  Transaction submitted! Hash: {txHash.slice(0, 10)}...
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || !form.recipient || !form.amount}
+                className="btn-primary"
+              >
+                {loading ? 'Processing...' : 'Transfer'}
+              </button>
+            </form>
+
+            <div className="info-box">
+              <h3>ℹ️ Demo Mode</h3>
+              <p>This is a demo interface. Contract deployment pending.</p>
+              <p>Once deployed to Passet Hub testnet, you'll be able to execute real cross-chain transfers.</p>
+            </div>
+          </div>
+        )}
+      </main>
 
       <footer className="footer">
-        <a
-          href="https://github.com/w3b3d3v/web3auth-examples/tree/web3dev-version/quick-starts/react-quick-start"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Source code
-        </a>
+        <p>Powered by XCMKit | Polkadot Hackathon 2026</p>
       </footer>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
