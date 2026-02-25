@@ -1,83 +1,249 @@
-# react-solidity-hardhat template
+# XCMBridge & XCMKit
 
-This template sets up a combination of Solidity smart contracts and a React front-end app that interacts with these
-smart contracts.  
-This template includes:
+> Cross-chain transfers on Polkadot Hub — one click, no seed phrases, no XCM knowledge required.
 
-- [OpenZeppelin](https://docs.openzeppelin.com/contracts/5.x/) smart contract library.
-- [hardhat](https://hardhat.org/) smart contract development tooling.
-- [wagmi](https://wagmi.sh/) for smart contract interaction.
-- [Tailwind CSS](https://tailwindcss.com) + [Tailwind UI](https://tailwindui.com/).
-- [Vite](https://vite.dev/) for dev tooling.
+**Polkadot Solidity Hackathon 2026 | Track 2: PVM Smart Contracts**
 
-The project is configured to deploy on "[Passet Hub](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fpasset-hub-paseo.ibp.network#/accounts)" network
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Setting up environment
+## 🌟 Overview
 
-First, set up Metamask wallet for Passet Hub network, and get some PAS there. ([docs](https://docs.polkadot.com/develop/smart-contracts/wallets/))  
-In `contracts` directory, set up private key for hardhat:
+XCMBridge is a cross-chain transfer application built on Polkadot Hub, powered by **XCMKit** — an open-source Solidity library that abstracts the XCM precompile into a developer-friendly API.
+
+- **For Users**: Transfer tokens across parachains with social login (Google, GitHub, Discord, Twitter) — no wallet setup required
+- **For Developers**: Simple Solidity API for XCM cross-chain transfers — no SCALE encoding, no MultiLocation complexity
+
+## 📐 Architecture
 
 ```
-npx hardhat vars set PRIVATE_KEY "INSERT_PRIVATE_KEY"
+XCMBridge Frontend (React + Web3Auth)
+         ↓
+XCMBridge.sol (Coordinator Contract)
+         ↓
+XCMKit Library (Solidity)
+    ├── ScaleEncoder.sol
+    ├── MultiLocation.sol
+    ├── XCMProgram.sol
+    └── WeightHelper.sol
+         ↓
+IXcm Precompile (0x...0a0000)
 ```
 
-[How to export private key from Metamask wallet](https://support.metamask.io/configure/accounts/how-to-export-an-accounts-private-key/)
+## 🚀 Quick Start
 
-## 1. Writing smart contracts
+### Prerequisites
 
-Contracts are written in `contracts/contracts`. Each smart contract has a Hardhat Ignition module counterpart in `contracts/igniton/modules`. More on that in [Hardhat Ignition docs](https://hardhat.org/ignition/docs/getting-started#overview).
+- Node.js >= 18
+- Git
 
-1. Edit smart contracts in `contracts/contracts`
-2. Edit ignition module in `contracts/igniton/modules`
-3. Run `npx hardhat compile` to compile smart contracts
-4. Run `npx hardhat ignition deploy ./ignition/modules/<ModuleName>.ts --network polkadotHubTestnet` to deploy them
+### Installation
 
-### Note on committing `ignition/deployments`
+```bash
+# Clone the repository
+git clone https://github.com/carlos-israelj/XCMKit.git
+cd XCMKit
 
-This is a directory that contains build and deployment artifacts from `hardhat`.
-They aren't ignored, becuase they are used for types generation for frontend: if there's a smart contract already deployed, you may want to keep it in git, so a fresh clone would give you a working frontend.
+# Install contracts dependencies
+cd contracts
+npm install
 
-However, several issues with hardhat are resolved by removing `ignition/deployments` directory, to start fresh deployment. These issues include:
+# Compile contracts
+npm run compile
 
-```
-An unexpected error occurred:
-
-Error: Could not parse row {...
-```
-
-```
-[ MyTokenModule ] reconciliation failed ⛔
-
-The module contains changes to executed futures:
-...
+# Run tests
+npm test
 ```
 
-In such cases, do `rm -rf ignition/deployments`, deploy the new contract, and commit the artifacts anew :)
+### Deploy to Passet Hub Testnet
 
-## 2. Interacting with smart contracts from frontend app
+```bash
+# Set your private key in contracts/.env
+echo "PRIVATE_KEY=your_private_key_here" > contracts/.env
 
-1. Generate types from deployed smart contracts by running `npm run generate` in `frontend` directory
-2. Run `npm run dev` to start `vite` environment
-3. You can import contract ABI and deployed addresses from `src/generated.ts`:
-
-```ts
-import {
-  myTokenModuleMyTokenAddress,
-  myTokenModuleMyTokenAbi,
-} from "./generated";
-
-const contractAddress = myTokenModuleMyTokenAddress[420420422];
-// ...
-writeContract({
-  address: contractAddress,
-  abi: myTokenModuleMyTokenAbi,
-  functionName: "mint",
-  args: [address, BigInt(amount) * 10n ** BigInt(params.decimals)],
-});
+# Deploy
+cd contracts
+npm run deploy:testnet
 ```
 
-More info at:
+## 💻 Usage Examples
 
-- [docs on smart contracts on Polkadot](https://docs.polkadot.com/develop/smart-contracts/)
-- [hardhat docs](https://hardhat.org/docs)
-- [wagmi docs](https://wagmi.sh/react/getting-started)
+### Basic Transfer
+
+```solidity
+import "./libs/XCMKit.sol";
+import "./libs/MultiLocation.sol";
+
+contract MyContract {
+    using XCMKit for *;
+
+    function transferToHydration() external {
+        XCMKit.transfer(
+            MultiLocation.HYDRATION,          // destination parachain
+            0x1234...5678,                    // recipient address
+            address(dotToken),                // token to transfer
+            1000000000000000000              // amount (1 DOT)
+        );
+    }
+}
+```
+
+### With Fee Control
+
+```solidity
+function transferWithFeeLimit() external {
+    XCMKit.transferWithFee(
+        MultiLocation.MOONBEAM,
+        recipient,
+        token,
+        amount,
+        maxFee  // explicit fee cap
+    );
+}
+```
+
+### Fee Estimation
+
+```solidity
+function estimateTransferCost() external view returns (uint256) {
+    (, uint256 fee) = XCMKit.estimateFee(
+        MultiLocation.ASTAR,
+        token,
+        amount
+    );
+    return fee;
+}
+```
+
+## 🛠️ Tech Stack
+
+### Contracts
+- Solidity 0.8.28
+- Hardhat + @parity/hardhat-polkadot
+- PolkaVM (resolc 0.3.0)
+- OpenZeppelin Contracts
+
+### Frontend
+- React 18 + Vite + TypeScript
+- Tailwind CSS
+- ethers.js v6
+- wagmi
+- Web3Auth MPC
+
+## 📦 Project Structure
+
+```
+xcmbridge/
+├── contracts/              # Smart contracts
+│   ├── contracts/
+│   │   ├── XCMBridge.sol      # Main contract
+│   │   ├── libs/              # XCMKit libraries
+│   │   │   ├── XCMKit.sol
+│   │   │   ├── ScaleEncoder.sol
+│   │   │   ├── MultiLocation.sol
+│   │   │   ├── XCMProgram.sol
+│   │   │   └── WeightHelper.sol
+│   │   └── interfaces/
+│   │       └── IXcm.sol
+│   ├── test/
+│   └── ignition/modules/
+│
+├── frontend/              # React application
+│   ├── src/
+│   │   ├── components/
+│   │   └── hooks/
+│   └── package.json
+│
+├── LICENSE
+└── README.md
+```
+
+## 🎯 Supported Chains (v1)
+
+| Chain | Parachain ID | Type |
+|-------|-------------|------|
+| AssetHub | 1000 | System chain (teleport supported) |
+| BridgeHub | 1002 | System chain (teleport supported) |
+| Acala | 2000 | Parachain |
+| Moonbeam | 2004 | Parachain |
+| Astar | 2006 | Parachain |
+| Bifrost | 2030 | Parachain |
+| Hydration | 2034 | Parachain |
+
+## 📝 API Reference
+
+### XCMKit Library
+
+```solidity
+library XCMKit {
+    // Transfer tokens to destination parachain
+    function transfer(
+        uint32 destinationParaId,
+        address recipient,
+        address token,
+        uint256 amount
+    ) internal;
+
+    // Transfer with explicit fee cap
+    function transferWithFee(
+        uint32 destinationParaId,
+        address recipient,
+        address token,
+        uint256 amount,
+        uint256 maxFee
+    ) internal;
+
+    // Teleport for trusted system chains
+    function teleport(
+        uint32 destinationParaId,
+        address recipient,
+        address token,
+        uint256 amount
+    ) internal;
+
+    // Estimate transfer fee
+    function estimateFee(
+        uint32 destinationParaId,
+        address token,
+        uint256 amount
+    ) internal view returns (IXcm.Weight memory, uint256);
+}
+```
+
+## 🧪 Testing
+
+```bash
+cd contracts
+npm test
+```
+
+Tests cover:
+- Contract deployment
+- Validation logic
+- Fee estimation interface
+- Multi-chain support
+- SCALE encoding (unit tests)
+
+## 🔗 Resources
+
+- [XCM Precompile Documentation](https://docs.polkadot.com/develop/smart-contracts/precompiles/xcm-precompile/)
+- [SCALE Codec Specification](https://docs.substrate.io/reference/scale-codec/)
+- [Polkadot Hackathon Guide](https://github.com/polkadot-developers/hackathon-guide)
+- [Architecture Document](./XCMKit_Architecture_v2.md)
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 🏆 Hackathon Submission
+
+This project was created for the Polkadot Solidity Hackathon 2026, Track 2: PVM Smart Contracts.
+
+**Team**: Carlos Israel Jiménez
+
+---
+
+Built with ❤️ for the Polkadot ecosystem
