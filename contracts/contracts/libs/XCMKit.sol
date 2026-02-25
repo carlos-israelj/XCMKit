@@ -21,7 +21,7 @@ library XCMKit {
     /**
      * @notice XCM precompile address
      */
-    address constant XCM_PRECOMPILE = 0x00000000000000000000000000000000000a0000;
+    address constant XCM_PRECOMPILE = address(0xA0000);
 
     /**
      * @notice Events for XCM operations

@@ -1,6 +1,6 @@
-# XCMBridge & XCMKit
+# XCMKit
 
-> Cross-chain transfers on Polkadot Hub — one click, no seed phrases, no XCM knowledge required.
+> The first Solidity library for on-chain XCM execution on Polkadot Hub.
 
 **Polkadot Solidity Hackathon 2026 | Track 2: PVM Smart Contracts**
 
@@ -8,33 +8,31 @@
 
 ## 🌟 Overview
 
-XCMBridge is a cross-chain transfer application built on Polkadot Hub, powered by **XCMKit** — an open-source Solidity library that abstracts the XCM precompile into a developer-friendly API.
+XCMKit is an open-source Solidity library that abstracts the raw XCM precompile on Polkadot Hub into a developer-friendly API. Any smart contract can import XCMKit and execute cross-chain transfers, send XCM messages, and compose XCM programs — with no external dependencies, no off-chain infrastructure, and no user interaction required.
 
-- **For Users**: Transfer tokens across parachains with social login (Google, GitHub, Discord, Twitter) — no wallet setup required
-- **For Developers**: Simple Solidity API for XCM cross-chain transfers — no SCALE encoding, no MultiLocation complexity
+**Key Features:**
+- ✅ Pure Solidity library — no off-chain dependencies
+- ✅ SCALE encoding built-in
+- ✅ MultiLocation construction helpers
+- ✅ Weight estimation via precompile
+- ✅ Support for reserve transfers, teleports, and Snowbridge
+- ✅ One-line cross-chain transfers
 
 ## 📐 Architecture
 
 ```
-XCMBridge Frontend (React + Web3Auth)
-         ↓
-XCMBridge.sol (Coordinator Contract)
-         ↓
+Your Contract
+     ↓
 XCMKit Library (Solidity)
     ├── ScaleEncoder.sol
     ├── MultiLocation.sol
     ├── XCMProgram.sol
     └── WeightHelper.sol
-         ↓
-IXcm Precompile (0x...0a0000)
+     ↓
+IXcm Precompile (0xA0000)
 ```
 
 ## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js >= 18
-- Git
 
 ### Installation
 
@@ -49,39 +47,24 @@ npm install
 
 # Compile contracts
 npm run compile
-
-# Run tests
-npm test
 ```
 
-### Deploy to Passet Hub Testnet
-
-```bash
-# Set your private key in contracts/.env
-echo "PRIVATE_KEY=your_private_key_here" > contracts/.env
-
-# Deploy
-cd contracts
-npm run deploy:testnet
-```
-
-## 💻 Usage Examples
-
-### Basic Transfer
+### Basic Usage
 
 ```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
 import "./libs/XCMKit.sol";
 import "./libs/MultiLocation.sol";
 
 contract MyContract {
-    using XCMKit for *;
-
     function transferToHydration() external {
         XCMKit.transfer(
             MultiLocation.HYDRATION,          // destination parachain
             0x1234...5678,                    // recipient address
-            address(dotToken),                // token to transfer
-            1000000000000000000              // amount (1 DOT)
+            address(0),                       // native token (PAS)
+            1000000000000000000              // amount (1 token)
         );
     }
 }
@@ -112,49 +95,6 @@ function estimateTransferCost() external view returns (uint256) {
     );
     return fee;
 }
-```
-
-## 🛠️ Tech Stack
-
-### Contracts
-- Solidity 0.8.28
-- Hardhat + @parity/hardhat-polkadot
-- PolkaVM (resolc 0.3.0)
-- OpenZeppelin Contracts
-
-### Frontend
-- React 18 + Vite + TypeScript
-- Tailwind CSS
-- ethers.js v6
-- wagmi
-- Web3Auth MPC
-
-## 📦 Project Structure
-
-```
-xcmbridge/
-├── contracts/              # Smart contracts
-│   ├── contracts/
-│   │   ├── XCMBridge.sol      # Main contract
-│   │   ├── libs/              # XCMKit libraries
-│   │   │   ├── XCMKit.sol
-│   │   │   ├── ScaleEncoder.sol
-│   │   │   ├── MultiLocation.sol
-│   │   │   ├── XCMProgram.sol
-│   │   │   └── WeightHelper.sol
-│   │   └── interfaces/
-│   │       └── IXcm.sol
-│   ├── test/
-│   └── ignition/modules/
-│
-├── frontend/              # React application
-│   ├── src/
-│   │   ├── components/
-│   │   └── hooks/
-│   └── package.json
-│
-├── LICENSE
-└── README.md
 ```
 
 ## 🎯 Supported Chains (v1)
@@ -209,6 +149,65 @@ library XCMKit {
 }
 ```
 
+## 💡 Use Cases
+
+### Autonomous DeFi Rebalancing
+
+```solidity
+contract LiquidityRouter {
+    function rebalance() external {
+        if (hydrationAPY > localAPY + threshold) {
+            XCMKit.transfer(Destination.HYDRATION, pool, DOT, liquidity);
+        }
+    }
+}
+```
+
+### Cross-Chain Vesting
+
+```solidity
+contract VestingSchedule {
+    function release() external {
+        require(block.timestamp >= vestingEnd);
+        uint256 amount = IERC20(dotToken).balanceOf(address(this));
+        XCMKit.transfer(Destination.ASTAR, beneficiary, dotToken, amount);
+    }
+}
+```
+
+## 🛠️ Tech Stack
+
+- Solidity 0.8.28
+- Hardhat + @parity/hardhat-polkadot
+- PolkaVM (resolc 0.3.0)
+- Zero external dependencies
+
+## 📦 Project Structure
+
+```
+xcmkit/
+├── contracts/              # XCMKit library + demo contract
+│   ├── contracts/
+│   │   ├── XCMBridge.sol      # Demo coordinator contract
+│   │   ├── libs/              # XCMKit libraries
+│   │   │   ├── XCMKit.sol
+│   │   │   ├── ScaleEncoder.sol
+│   │   │   ├── MultiLocation.sol
+│   │   │   ├── XCMProgram.sol
+│   │   │   └── WeightHelper.sol
+│   │   └── interfaces/
+│   │       └── IXcm.sol
+│   ├── test/
+│   └── ignition/modules/
+│
+├── playground/            # Demo frontend (minimal React app)
+│   ├── src/
+│   └── package.json
+│
+├── LICENSE
+└── README.md
+```
+
 ## 🧪 Testing
 
 ```bash
@@ -217,33 +216,47 @@ npm test
 ```
 
 Tests cover:
-- Contract deployment
-- Validation logic
-- Fee estimation interface
-- Multi-chain support
-- SCALE encoding (unit tests)
+- SCALE encoding
+- MultiLocation construction
+- XCM program assembly
+- Weight estimation
+- Contract integration
+
+## 📋 Deploy to Passet Hub
+
+```bash
+# Set your private key
+npx hardhat vars set PRIVATE_KEY
+
+# Get PAS tokens
+# https://faucet.polkadot.io/?parachain=1111
+
+# Deploy
+npm run deploy:testnet
+
+# Verify contract size
+npx hardhat size-contracts
+```
 
 ## 🔗 Resources
 
 - [XCM Precompile Documentation](https://docs.polkadot.com/develop/smart-contracts/precompiles/xcm-precompile/)
-- [SCALE Codec Specification](https://docs.substrate.io/reference/scale-codec/)
-- [Polkadot Hackathon Guide](https://github.com/polkadot-developers/hackathon-guide)
+- [SCALE Codec Specification](https://docs.polkadot.com/polkadot-protocol/parachain-basics/data-encoding)
+- [XCM Format Spec](https://github.com/polkadot-fellows/xcm-format)
 - [Architecture Document](./XCMKit_Architecture_v2.md)
 
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## 🏆 Hackathon Submission
 
 This project was created for the Polkadot Solidity Hackathon 2026, Track 2: PVM Smart Contracts.
+
+**Deliverable:** A production-ready Solidity library for on-chain XCM execution + interactive playground demo
 
 **Team**: Carlos Israel Jiménez
 
 ---
 
-Built with ❤️ for the Polkadot ecosystem
+Built for the Polkadot ecosystem

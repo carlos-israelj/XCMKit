@@ -2,167 +2,109 @@
 pragma solidity ^0.8.28;
 
 import "./libs/XCMKit.sol";
-import "./libs/MultiLocation.sol";
 import "./interfaces/IXcm.sol";
 
-/**
- * @title XCMBridge
- * @notice Coordinator contract for cross-chain transfers on Polkadot Hub
- * @dev User-facing contract that wraps XCMKit library functionality
- */
+/// @title XCMBridge — Demo coordinator for XCMKit playground
+/// @notice Wraps XCMKit library functions as public contract functions
+/// @dev Deployed on Passet Hub testnet. NOT for production use.
 contract XCMBridge {
-    using XCMKit for *;
 
-    /**
-     * @notice Events
-     */
+    // ─── State ────────────────────────────────────────────────────────────────
+
+    address public owner;
+    bool    private _locked;
+
+    // ─── Events ───────────────────────────────────────────────────────────────
+
     event TransferInitiated(
         address indexed sender,
-        uint32 indexed destinationParaId,
-        address indexed recipient,
-        address token,
-        uint256 amount,
-        uint256 estimatedFee
+        uint32  indexed destinationParaId,
+        address         recipient,
+        address         token,
+        uint256         amount
     );
 
-    event TeleportInitiated(
-        address indexed sender,
-        uint32 indexed destinationParaId,
-        address indexed recipient,
-        address token,
-        uint256 amount
+    event FeeEstimated(
+        uint32  indexed destinationParaId,
+        uint64          refTime,
+        uint64          proofSize,
+        uint256         feePas
     );
 
-    /**
-     * @notice Transfer tokens to a destination parachain
-     * @param destinationParaId Parachain ID (1000 = AssetHub, 2034 = Hydration, etc.)
-     * @param recipient Recipient address on destination chain
-     * @param token Token address on Polkadot Hub
-     * @param amount Amount to transfer
-     */
+    // ─── Errors ───────────────────────────────────────────────────────────────
+
+    error NotOwner();
+    error ReentrantCall();
+    error ZeroAmount();
+    error ZeroRecipient();
+
+    // ─── Modifiers ────────────────────────────────────────────────────────────
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+
+    modifier nonReentrant() {
+        if (_locked) revert ReentrantCall();
+        _locked = true;
+        _;
+        _locked = false;
+    }
+
+    // ─── Constructor ──────────────────────────────────────────────────────────
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // ─── Public API (called by playground) ────────────────────────────────────
+
+    /// @notice Execute a cross-chain reserve transfer via XCMKit
+    /// @param destinationParaId Target parachain ID (use Destination.HYDRATION etc.)
+    /// @param recipient Recipient address on destination chain
+    /// @param token Token address on Polkadot Hub
+    /// @param amount Amount in token decimals
     function transfer(
-        uint32 destinationParaId,
+        uint32  destinationParaId,
         address recipient,
         address token,
         uint256 amount
-    ) external {
-        require(recipient != address(0), "Invalid recipient");
-        require(amount > 0, "Amount must be greater than 0");
+    ) external nonReentrant {
+        if (amount == 0)    revert ZeroAmount();
+        if (recipient == address(0)) revert ZeroRecipient();
 
-        // Estimate fee for event
-        (, uint256 fee) = XCMKit.estimateFee(destinationParaId, token, amount);
-
-        // Execute transfer
         XCMKit.transfer(destinationParaId, recipient, token, amount);
 
-        emit TransferInitiated(
-            msg.sender,
-            destinationParaId,
-            recipient,
-            token,
-            amount,
-            fee
-        );
+        emit TransferInitiated(msg.sender, destinationParaId, recipient, token, amount);
     }
 
-    /**
-     * @notice Transfer with explicit fee cap
-     * @param destinationParaId Parachain ID
-     * @param recipient Recipient address
-     * @param token Token address
-     * @param amount Amount to transfer
-     * @param maxFee Maximum fee willing to pay
-     */
-    function transferWithFee(
-        uint32 destinationParaId,
-        address recipient,
-        address token,
-        uint256 amount,
-        uint256 maxFee
-    ) external {
-        require(recipient != address(0), "Invalid recipient");
-        require(amount > 0, "Amount must be greater than 0");
-
-        XCMKit.transferWithFee(destinationParaId, recipient, token, amount, maxFee);
-
-        emit TransferInitiated(
-            msg.sender,
-            destinationParaId,
-            recipient,
-            token,
-            amount,
-            maxFee
-        );
-    }
-
-    /**
-     * @notice Teleport tokens to trusted system chains
-     * @param destinationParaId System chain ID (AssetHub or BridgeHub)
-     * @param recipient Recipient address
-     * @param token Token address
-     * @param amount Amount to teleport
-     */
-    function teleport(
-        uint32 destinationParaId,
-        address recipient,
-        address token,
-        uint256 amount
-    ) external {
-        require(recipient != address(0), "Invalid recipient");
-        require(amount > 0, "Amount must be greater than 0");
-
-        XCMKit.teleport(destinationParaId, recipient, token, amount);
-
-        emit TeleportInitiated(
-            msg.sender,
-            destinationParaId,
-            recipient,
-            token,
-            amount
-        );
-    }
-
-    /**
-     * @notice Estimate fee for a cross-chain transfer
-     * @param destinationParaId Parachain ID
-     * @param token Token address
-     * @param amount Amount to transfer
-     * @return feePas Estimated fee in PAS
-     */
+    /// @notice Estimate fee for a transfer without executing it
+    /// @return refTime Estimated computational weight
+    /// @return proofSize Estimated proof size
+    /// @return feePas Estimated fee in PAS (rough approximation)
     function estimateFee(
-        uint32 destinationParaId,
+        uint32  destinationParaId,
         address token,
         uint256 amount
-    ) external view returns (uint256 feePas) {
-        (, feePas) = XCMKit.estimateFee(destinationParaId, token, amount);
+    ) external view returns (uint64 refTime, uint64 proofSize, uint256 feePas) {
+        (IXcm.Weight memory w, uint256 fee) = XCMKit.estimateFee(
+            destinationParaId, token, amount
+        );
+        return (w.refTime, w.proofSize, fee);
     }
 
-    /**
-     * @notice Get weight for a transfer
-     * @param destinationParaId Parachain ID
-     * @param token Token address
-     * @param amount Amount to transfer
-     * @return weight Computed weight
-     */
-    function getTransferWeight(
-        uint32 destinationParaId,
-        address token,
-        uint256 amount
-    ) external view returns (IXcm.Weight memory weight) {
-        (weight, ) = XCMKit.estimateFee(destinationParaId, token, amount);
-    }
-
-    /**
-     * @notice Get supported destination chains
-     * @return Array of supported parachain IDs
-     */
+    /// @notice Get list of supported destination chains
+    /// @return Array of parachain IDs
     function getSupportedChains() external pure returns (uint32[] memory) {
-        uint32[] memory chains = new uint32[](5);
-        chains[0] = MultiLocation.ASSET_HUB;
-        chains[1] = MultiLocation.HYDRATION;
-        chains[2] = MultiLocation.MOONBEAM;
-        chains[3] = MultiLocation.ASTAR;
-        chains[4] = MultiLocation.BIFROST;
+        uint32[] memory chains = new uint32[](7);
+        chains[0] = 1000; // ASSET_HUB
+        chains[1] = 1002; // BRIDGE_HUB
+        chains[2] = 2034; // HYDRATION
+        chains[3] = 2004; // MOONBEAM
+        chains[4] = 2006; // ASTAR
+        chains[5] = 2000; // ACALA
+        chains[6] = 2030; // BIFROST
         return chains;
     }
 }

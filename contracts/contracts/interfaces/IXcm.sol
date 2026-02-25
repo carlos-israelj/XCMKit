@@ -1,50 +1,38 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.20;
 
-/**
- * @title IXcm
- * @notice Interface for the XCM precompile at 0x00000000000000000000000000000000000a0000
- * @dev Based on the official Polkadot SDK implementation
- * Source: https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/xcm/pallet-xcm/src/precompiles/IXcm.sol
- */
+/// @dev The on-chain address of the XCM (Cross-Consensus Messaging) precompile.
+address constant XCM_PRECOMPILE_ADDRESS = address(0xA0000);
+
+/// @title XCM Precompile Interface
+/// @notice A low-level interface for interacting with pallet_xcm.
+/// @dev Documentation:
+/// @dev - XCM: https://docs.polkadot.com/develop/interoperability
+/// @dev - SCALE codec: https://docs.polkadot.com/polkadot-protocol/parachain-basics/data-encoding
+/// @dev - Weights: https://docs.polkadot.com/polkadot-protocol/parachain-basics/blocks-transactions-fees/fees/
 interface IXcm {
-    /**
-     * @notice Weight struct for XCM message execution
-     * @param refTime Reference time for execution
-     * @param proofSize Size of the proof data
-     */
+    /// @notice Weight v2 used for measurement for an XCM execution
     struct Weight {
+        /// @custom:property The computational time used to execute some logic based on reference hardware.
         uint64 refTime;
+        /// @custom:property The size of the proof needed to execute some logic.
         uint64 proofSize;
     }
 
-    /**
-     * @notice Execute an XCM message locally
-     * @param message Encoded XCM message in SCALE format
-     * @param maxWeight Maximum weight allowed for execution
-     * @return outcome The execution outcome
-     */
-    function execute(bytes memory message, Weight memory maxWeight)
-        external
-        returns (bytes memory outcome);
+    /// @notice Executes an XCM message locally on the current chain with the caller's origin.
+    /// @dev Internally calls pallet_xcm::execute.
+    /// @param message A SCALE-encoded Versioned XCM message.
+    /// @param weight The maximum allowed Weight for execution.
+    function execute(bytes calldata message, Weight calldata weight) external;
 
-    /**
-     * @notice Send an XCM message to a destination
-     * @param dest Encoded destination MultiLocation in SCALE format
-     * @param message Encoded XCM message in SCALE format
-     * @return messageId The ID of the sent message
-     */
-    function send(bytes memory dest, bytes memory message)
-        external
-        returns (bytes32 messageId);
+    /// @notice Sends an XCM message to another parachain or consensus system.
+    /// @dev Internally calls pallet_xcm::send.
+    /// @param destination SCALE-encoded destination MultiLocation.
+    /// @param message SCALE-encoded Versioned XCM message.
+    function send(bytes calldata destination, bytes calldata message) external;
 
-    /**
-     * @notice Calculate the weight required for an XCM message
-     * @param message Encoded XCM message in SCALE format
-     * @return weight The computed weight
-     */
-    function weighMessage(bytes memory message)
-        external
-        view
-        returns (Weight memory weight);
+    /// @notice Estimates the Weight required to execute a given XCM message.
+    /// @param message SCALE-encoded Versioned XCM message to analyze.
+    /// @return weight Struct containing estimated refTime and proofSize.
+    function weighMessage(bytes calldata message) external view returns (Weight memory weight);
 }
