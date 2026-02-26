@@ -128,19 +128,28 @@ npx hardhat compile
 
 ## ⚠️ Known Issues
 
-### 1. PolkaVM Plugin Disabled
+### 1. PolkaVM Plugin Configuration (In Progress)
 
-**Issue**: `@parity/hardhat-polkadot` causes WebSocket error during compilation
+**Issue**: `@parity/hardhat-polkadot` requires WebSocket polyfill in Node.js environment
 
-```
-ReferenceError: WebSocket is not defined
-```
+**Attempted Solutions**:
+- ✅ Installed `ws` package (v8.19.0)
+- ✅ Created WebSocket polyfill in hardhat.config.ts
+- ✅ Enabled `resolc` compiler configuration (v0.3.0)
+- ✅ Enabled `polkavm: true` in network configurations
+- ⏳ Testing compilation with full PolkaVM support
 
-**Workaround**: Plugin temporarily commented out in `hardhat.config.ts`
+**Current Status**:
+- Standard Solidity compilation works perfectly (33 tests passing)
+- PolkaVM compilation testing in progress
+- May need alternative approach or plugin update
 
-**Impact**: Can compile with standard Solidity, but cannot deploy to PolkaVM yet
+**Impact**: Can compile and test with standard Solidity. Deployment to Passet Hub testnet pending PolkaVM verification.
 
-**Solution**: Re-enable when WebSocket polyfill is properly configured or plugin is updated
+**Next Steps**:
+- Verify PolkaVM compilation completes successfully
+- Test deployment scripts with enabled plugin
+- Consider deploying with standard EVM initially if PolkaVM has compatibility issues
 
 ### 2. No Mainnet Deployment Yet
 
@@ -159,10 +168,13 @@ npx hardhat ignition deploy ./ignition/modules/XCMBridge.ts --network passetHub
 
 ### Immediate (Pre-Hackathon)
 
-1. **Fix PolkaVM Plugin** ⏳
-   - Research WebSocket polyfill solution
-   - Test compilation with `polkavm: true`
-   - Verify `resolc` compiler integration
+1. **Fix PolkaVM Plugin** ⏳ IN PROGRESS
+   - ✅ Research WebSocket polyfill solution
+   - ✅ Implement WebSocket polyfill in hardhat.config.ts
+   - ✅ Enable `resolc` compiler (v0.3.0) with optimizer
+   - ✅ Enable `polkavm: true` in all network configurations
+   - ⏳ Verify compilation completes successfully
+   - ⏳ Test deployment capability to Passet Hub
 
 2. **Unit Tests** ✅ COMPLETED
    - ✅ Implement ScaleEncoder encoding tests (15 tests)
